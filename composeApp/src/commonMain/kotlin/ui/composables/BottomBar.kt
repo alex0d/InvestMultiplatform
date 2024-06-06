@@ -1,6 +1,7 @@
 package ui.composables
 
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,7 +31,7 @@ fun BottomBar() {
                     Icon(
                         painter = painterResource(barItem.icon),
                         contentDescription = stringResource(barItem.label),
-//                        tint = if (selected) MaterialTheme.colorScheme.surfaceTint else MaterialTheme.colorScheme.onSurface
+                        tint = if (selected) MaterialTheme.colorScheme.surfaceTint else MaterialTheme.colorScheme.onSurface
                     )
                 },
                 label = { Text(stringResource(barItem.label)) },
