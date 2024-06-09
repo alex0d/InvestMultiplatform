@@ -1,51 +1,87 @@
-package screens
+package screens.portfolio
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.animation.animateColor
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
 import coil3.compose.AsyncImage
 import domain.models.PortfolioInfo
 import domain.models.PortfolioStockInfo
-import investmultiplatform.composeapp.generated.resources.Res
-import investmultiplatform.composeapp.generated.resources.empty_portfolio_message
-import investmultiplatform.composeapp.generated.resources.pieces_short
-import investmultiplatform.composeapp.generated.resources.portfolio
-import investmultiplatform.composeapp.generated.resources.sentiment_dissatisfied
+import investmultiplatform.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.ui.tooling.preview.Preview
+import org.jetbrains.compose.ui.tooling.preview.PreviewParameter
+import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.annotation.KoinExperimentalAPI
 import ui.composables.ProfitText
+import utils.previewproviders.FakePortfolioInfo
 import utils.toCurrencyFormat
 
+@OptIn(KoinExperimentalAPI::class)
 @Composable
 fun PortfolioScreen(
-    modifier: Modifier = Modifier,
-    portfolioInfo: PortfolioInfo,
+    lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
+    viewModel: PortfolioViewModel = koinViewModel()
 ) {
-    Column(
-        modifier = modifier
+    val state = viewModel.state.collectAsState().value
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> viewModel.startUpdating()
+                Lifecycle.Event.ON_STOP -> viewModel.stopUpdating()
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .background(MaterialTheme.colorScheme.surface)
+            .statusBarsPadding()
     ) {
+        when (state) {
+            is PortfolioState.Loading -> PortfolioScreenOnLoading()
+            is PortfolioState.PortfolioInfoFetched -> PortfolioScreenOnInfoFetched(
+                portfolioInfo = state.portfolioInfo,
+//                navigator = navigator
+            )
+            is PortfolioState.Error -> PortfolioScreenOnError()
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun PortfolioScreenOnInfoFetched(
+    @PreviewParameter(FakePortfolioInfo::class) portfolioInfo: PortfolioInfo,
+//    navigator: DestinationsNavigator = EmptyDestinationsNavigator
+) {
+    Column {
         TotalBalanceCard(
             portfolioInfo.totalValue,
             portfolioInfo.totalProfit,
@@ -187,5 +223,73 @@ private fun StockItem(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun PortfolioScreenOnLoading() {
+    val infiniteTransition = rememberInfiniteTransition(label = "infinite")
+
+    val topCardColor by infiniteTransition.animateColor(
+        initialValue = MaterialTheme.colorScheme.primaryContainer,
+        targetValue = MaterialTheme.colorScheme.secondaryContainer,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "topCardColor"
+    )
+
+    val itemsColor by infiniteTransition.animateColor(
+        initialValue = MaterialTheme.colorScheme.surfaceVariant,
+        targetValue = MaterialTheme.colorScheme.secondaryContainer,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "itemsColor"
+    )
+
+    Column {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 8.dp)
+                .height(128.dp),
+            elevation = CardDefaults.cardElevation(8.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = topCardColor,
+            )
+        ) { }
+        Spacer(Modifier.height(8.dp))
+        Column {
+            repeat(5) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .height(68.dp),
+                    elevation = CardDefaults.cardElevation(4.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = itemsColor
+                    )
+                ) { }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PortfolioScreenOnError() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = stringResource(Res.string.error_occurred),
+            textAlign = TextAlign.Center,
+        )
     }
 }

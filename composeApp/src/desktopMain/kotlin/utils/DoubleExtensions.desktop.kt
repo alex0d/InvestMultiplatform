@@ -1,7 +1,7 @@
 package utils
 
 import java.text.NumberFormat
-import java.util.Currency
+import java.util.*
 
 internal actual fun Double.toCurrencyFormat(currencyCode: String): String {
     val format = NumberFormat.getCurrencyInstance().apply {

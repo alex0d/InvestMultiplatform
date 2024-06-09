@@ -1,13 +1,9 @@
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import domain.models.PortfolioInfo
 import domain.models.PortfolioStockInfo
-import io.github.alexzhirkevich.cupertino.adaptive.AdaptiveScaffold
 import io.github.alexzhirkevich.cupertino.adaptive.ExperimentalAdaptiveApi
 import org.jetbrains.compose.ui.tooling.preview.Preview
-import screens.PortfolioScreen
-import ui.composables.BottomBar
+import screens.main.MainScreen
 import ui.theme.InvestAppTheme
 
 @OptIn(ExperimentalAdaptiveApi::class)
@@ -15,14 +11,7 @@ import ui.theme.InvestAppTheme
 @Preview
 fun App() {
     InvestAppTheme {
-        AdaptiveScaffold(bottomBar = {
-            BottomBar()
-        }) { innerPadding ->
-            PortfolioScreen(
-                modifier = Modifier.padding(innerPadding),
-                portfolioInfo = portfolioInfo
-            )
-        }
+        MainScreen()
     }
 }
 
