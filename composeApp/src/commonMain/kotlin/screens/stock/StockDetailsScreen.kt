@@ -1,5 +1,6 @@
 package screens.stock
 
+import MyIcons
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -11,38 +12,51 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cafe.adriel.voyager.navigator.LocalNavigator
+import cafe.adriel.voyager.navigator.tab.Tab
+import cafe.adriel.voyager.navigator.tab.TabOptions
 import domain.models.CandleInterval
 import domain.models.PortfolioStockInfo
 import domain.models.Share
 import domain.models.toStringRes
 import investmultiplatform.composeapp.generated.resources.*
-import org.jetbrains.compose.resources.painterResource
+import myicons.CandlestickChart
+import myicons.Cards
+import myicons.LineChart
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.KoinExperimentalAPI
 import org.koin.core.parameter.parametersOf
+import screens.order.OrderAction
+import screens.order.OrderScreen
+import screens.tarot.TarotScreen
 import ui.composables.ProfitText
 import utils.fromHex
 import utils.toCurrencyFormat
 
-@OptIn(KoinExperimentalAPI::class)
-@Composable
-fun StockDetailsScreen(
+
+data class StockDetailsScreen(
+    val stockUid: String
+) : Tab {
+    @OptIn(KoinExperimentalAPI::class)
+    @Composable
+    override fun Content(
 //    navigator: DestinationsNavigator,
 //    resultRecipient: ResultRecipient<OrderScreenDestination, Boolean>,
-    stockUid: String = ""
-) {
-    val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
+//        stockUid: String = ""
+    ) {
+        val scope = rememberCoroutineScope()
+        val snackbarHostState = remember { SnackbarHostState() }
 
-    val viewModel: StockDetailsViewModel = koinViewModel { parametersOf(stockUid) }
-    val state = viewModel.state.collectAsState().value
+        val viewModel: StockDetailsViewModel = koinViewModel { parametersOf(stockUid) }
+        val state = viewModel.state.collectAsState().value
 //    val modelProducer = viewModel.modelProducer
 
 //    val orderMessage = stringResource(Res.string.order_completed)
@@ -58,39 +72,47 @@ fun StockDetailsScreen(
 //        }
 //    }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) {
-            Snackbar(
-                snackbarData = it,
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                dismissActionContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            )
-        } },
-        topBar = {
-//            if (state is StockDetailsState.Success) {
-//                StockDetailsTopAppBar(navigator, state)
-//            }
-        }
-    ) { padding ->
-        Box(modifier = Modifier
-            .padding(top = padding.calculateTopPadding())
-            .padding(horizontal = 2.dp)) {
-            when (state) {
-                is StockDetailsState.Success -> {
-                    StockDetailsOnSuccess(
-                        state = state,
+        Scaffold(
+            snackbarHost = { SnackbarHost(hostState = snackbarHostState) {
+                Snackbar(
+                    snackbarData = it,
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    dismissActionContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            } },
+            topBar = {
+                if (state is StockDetailsState.Success) {
+                    StockDetailsTopAppBar(state)
+                }
+            }
+        ) { padding ->
+            Box(modifier = Modifier
+                .padding(top = padding.calculateTopPadding())
+                .padding(horizontal = 2.dp)) {
+                when (state) {
+                    is StockDetailsState.Success -> {
+                        StockDetailsOnSuccess(
+                            state = state,
 //                        modelProducer = modelProducer,
-                        onSwitchChartType = viewModel::chartType::set,
+                            onSwitchChartType = viewModel::chartType::set,
 //                        onIntervalClick = viewModel::fetchCandles,
 //                        navigator = navigator
-                    )
+                        )
+                    }
+                    is StockDetailsState.Loading -> OrderDetailsOnLoading()
+                    is StockDetailsState.Error -> OrderDetailsOnError()
                 }
-                is StockDetailsState.Loading -> OrderDetailsOnLoading()
-                is StockDetailsState.Error -> OrderDetailsOnError()
             }
         }
     }
+
+    override val options: TabOptions
+        @Composable
+        get() = TabOptions(
+            index = 4u,
+            title = "test title"
+        )
 }
 
 @Composable
@@ -132,7 +154,7 @@ private fun StockDetailsOnSuccess(
                 )
             ) {
                 Icon(
-                    painter = painterResource(if (chartType == ChartType.LINE) Res.drawable.line_chart else Res.drawable.candlestick_chart),
+                    painter = rememberVectorPainter(if (chartType == ChartType.LINE) MyIcons.LineChart else MyIcons.CandlestickChart),
                     contentDescription = if (chartType == ChartType.LINE) stringResource(Res.string.switch_to_candlestick_chart) else stringResource(Res.string.switch_to_line_chart),
                     tint = MaterialTheme.colorScheme.onSecondaryContainer
                 )
@@ -149,11 +171,9 @@ private fun StockDetailsOnSuccess(
         state.stockInfo?.let { stockInfo ->
             PortfolioSection(stockInfo)
         } ?: run {
-//            TarotSection(navigator, state)
             TarotSection(state)
         }
         Spacer(modifier = Modifier.weight(1f))
-//        ButtonsSection(navigator, state)
         ButtonsSection(state)
     }
 }
@@ -267,9 +287,10 @@ private fun PortfolioSection(stockInfo: PortfolioStockInfo) {
 
 @Composable
 private fun TarotSection(
-//    navigator: DestinationsNavigator,
     state: StockDetailsState.Success
 ) {
+    val navigator = LocalNavigator.current
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -278,7 +299,7 @@ private fun TarotSection(
     ) {
         Button(
             onClick = {
-//                navigator.navigate(TarotScreenDestination(stockName = state.share.name))
+                navigator?.push(TarotScreen(stockName = state.share.name))
             },
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -294,9 +315,10 @@ private fun TarotSection(
 
 @Composable
 private fun ButtonsSection(
-//    navigator: DestinationsNavigator,
     state: StockDetailsState.Success
 ) {
+    val navigator = LocalNavigator.current
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -307,7 +329,7 @@ private fun ButtonsSection(
             IconButton(
                 modifier = Modifier.width(60.dp),
                 onClick = {
-//                    navigator.navigate(TarotScreenDestination(stockName = state.share.name))
+                    navigator?.push(TarotScreen(stockName = state.share.name))
                 },
                 colors = IconButtonDefaults.iconButtonColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -316,7 +338,7 @@ private fun ButtonsSection(
                 )
             ) {
                 Icon(
-                    painter = painterResource(Res.drawable.cards),
+                    painter = rememberVectorPainter(MyIcons.Cards),
                     contentDescription = stringResource(Res.string.esoteric_analysis),
                 )
             }
@@ -327,7 +349,7 @@ private fun ButtonsSection(
                     contentColor = MaterialTheme.colorScheme.surface
                 ),
                 onClick = {
-//                    navigator.navigate(OrderScreenDestination(orderAction = OrderAction.SELL, stockUid = state.share.uid))
+                    navigator?.push(OrderScreen(orderAction = OrderAction.SELL, stockUid = state.share.uid))
                 },
                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
             ) {
@@ -346,7 +368,7 @@ private fun ButtonsSection(
                 contentColor = Color.White
             ),
             onClick = {
-//                navigator.navigate(OrderScreenDestination(orderAction = OrderAction.BUY, stockUid = state.share.uid))
+                navigator?.push(OrderScreen(orderAction = OrderAction.BUY, stockUid = state.share.uid))
             }
         ) {
             Text(
@@ -386,13 +408,13 @@ private fun OrderDetailsOnError() {
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 private fun StockDetailsTopAppBar(
-//    navigator: DestinationsNavigator,
     state: StockDetailsState.Success
 ) {
+    val navigator = LocalNavigator.current
+
     TopAppBar(
         navigationIcon = {
-//            IconButton(onClick = { navigator.popBackStack() }) {
-            IconButton(onClick = {  }) {
+            IconButton(onClick = { navigator?.pop() }) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     tint = Color.fromHex(state.share.textColor),
@@ -449,7 +471,6 @@ private fun StockDetailsOnSuccessNotInPortfolioPreview() {
 //        modelProducer = CartesianChartModelProducer.build(),
         onSwitchChartType = {},
         onIntervalClick = {},
-//        navigator = EmptyDestinationsNavigator
     )
 }
 
@@ -493,6 +514,5 @@ private fun StockDetailsOnSuccessInPortfolioPreview() {
 //        modelProducer = CartesianChartModelProducer.build(),
         onSwitchChartType = {},
         onIntervalClick = {},
-//        navigator = EmptyDestinationsNavigator
     )
 }

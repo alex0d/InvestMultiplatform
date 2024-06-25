@@ -2,7 +2,6 @@ package screens.main
 
 import MyIcons
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import cafe.adriel.voyager.navigator.tab.Tab
 import cafe.adriel.voyager.navigator.tab.TabOptions
@@ -18,11 +17,11 @@ import screens.portfolio.PortfolioScreen
 import screens.profile.ProfileScreen
 import screens.search.SearchScreen
 
-enum class BottomBarTab: Tab {
-    Portfolio {
+sealed class BottomBarTab {
+    object Portfolio : Tab {
         @Composable
         override fun Content() {
-            PortfolioScreen()
+            PortfolioScreen().Content()
         }
 
         override val options: TabOptions
@@ -31,17 +30,15 @@ enum class BottomBarTab: Tab {
                 val title = stringResource(Res.string.portfolio)
                 val icon = rememberVectorPainter(MyIcons.Portfolio)
 
-                return remember {
-                    TabOptions(
-                        index = 0u,
-                        title = title,
-                        icon = icon,
-                    )
-                }
+                return TabOptions(
+                    index = 0u,
+                    title = title,
+                    icon = icon,
+                )
             }
-    },
+    }
 
-    Search {
+    object Search : Tab {
         @Composable
         override fun Content() {
             SearchScreen()
@@ -53,17 +50,15 @@ enum class BottomBarTab: Tab {
                 val title = stringResource(Res.string.search)
                 val icon = rememberVectorPainter(MyIcons.Search)
 
-                return remember {
-                    TabOptions(
-                        index = 1u,
-                        title = title,
-                        icon = icon,
-                    )
-                }
+                return TabOptions(
+                    index = 1u,
+                    title = title,
+                    icon = icon,
+                )
             }
-    },
+    }
 
-    Profile {
+    object Profile : Tab {
         @Composable
         override fun Content() {
             ProfileScreen()
@@ -75,13 +70,11 @@ enum class BottomBarTab: Tab {
                 val title = stringResource(Res.string.profile)
                 val icon = rememberVectorPainter(MyIcons.AccountCircle)
 
-                return remember {
-                    TabOptions(
-                        index = 2u,
-                        title = title,
-                        icon = icon,
-                    )
-                }
+                return TabOptions(
+                    index = 2u,
+                    title = title,
+                    icon = icon,
+                )
             }
     }
 }

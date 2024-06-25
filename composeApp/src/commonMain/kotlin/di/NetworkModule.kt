@@ -1,13 +1,20 @@
 package di
 
 import data.local.UserDataSource
+import data.remote.models.AuthResponse
+import data.remote.models.RefreshRequest
 import data.remote.services.*
 import io.ktor.client.*
+import io.ktor.client.call.*
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.auth.*
 import io.ktor.client.plugins.auth.providers.*
 import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.plugins.logging.*
+import io.ktor.client.request.*
+import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.Json
 import org.koin.dsl.module
 
@@ -15,35 +22,50 @@ const val investApiBaseUrl = "https://invest.alex0d.ru"  // TODO: replace with B
 
 fun provideHttpClient(userDataSource: UserDataSource): HttpClient {
     return HttpClient {
+        install(Logging) {
+            logger = Logger.DEFAULT
+            level = LogLevel.ALL
+            logger =
+                object : Logger {
+                    override fun log(message: String) {
+                        println("HTTP Client: $message")
+                    }
+                }
+        }
+
         install(Auth) {
             bearer {
                 loadTokens {
+                    println("loadTokens")
                     BearerTokens(
-                        accessToken = "eyJhbGciOiJIUzI1NiJ9.eyJmaXJzdG5hbWUiOiJBbGVrc2V5IiwibGFzdG5hbWUiOiJEZW5pc292IiwiYXV0aG9yaXRpZXMiOlsiUk9MRV9VU0VSIl0sInN1YiI6ImFsZXhAbWFpbC5ydSIsImlhdCI6MTcxNzkzODY2NCwiZXhwIjoxNzE3OTQwNDY0fQ.F4P0nQ783JtMSOvDUn1VCwh8xC_j2vpKwEXjFNwBqBA",
-                        refreshToken = "eyJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3MTc5Mzg2NjQsImV4cCI6MTcyMDUzMDY2NH0.hy1zZiqmJiwocM0ZEdYmTaLMLencnMwTbi-cphg8W0U"
-                    )
+                        accessToken = userDataSource.accessToken.first() ?: "",
+                        refreshToken = userDataSource.refreshToken.first() ?: ""
+                    ).also {
+                        println("loadTokens: ${it.accessToken} ${it.refreshToken}")
+                    }
                 }
 
-//                refreshTokens {
-//                    val refreshRequest = RefreshRequest(
-//                        refreshToken = userDataSource.refreshToken.first() ?: ""
-//                    )
-//
-//                    client.get("$investApiBaseUrl/api/auth/refresh") {
-//                        markAsRefreshTokenRequest()
-//                        contentType(ContentType.Application.Json)
-//                        setBody(refreshRequest)
-//                    }.body<AuthResponse>().let {
-//
-//                        userDataSource.saveAccessToken(it.accessToken)
-//                        userDataSource.saveRefreshToken(it.refreshToken)
-//
-//                        BearerTokens(
-//                            accessToken = it.accessToken,
-//                            refreshToken = it.refreshToken
-//                        )
-//                    }
-//                }
+                refreshTokens {
+                    println("refreshTokens")
+                    val refreshRequest = RefreshRequest(
+                        refreshToken = userDataSource.refreshToken.first() ?: ""
+                    )
+
+                    client.post("$investApiBaseUrl/api/auth/refresh") {
+                        markAsRefreshTokenRequest()
+                        contentType(ContentType.Application.Json)
+                        setBody(refreshRequest)
+                    }.body<AuthResponse>().let {
+
+                        userDataSource.saveAccessToken(it.accessToken)
+                        userDataSource.saveRefreshToken(it.refreshToken)
+
+                        BearerTokens(
+                            accessToken = it.accessToken,
+                            refreshToken = it.refreshToken
+                        )
+                    }
+                }
             }
         }
 

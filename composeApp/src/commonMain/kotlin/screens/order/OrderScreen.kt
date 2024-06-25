@@ -1,5 +1,6 @@
 package screens.order
 
+import MyIcons
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
@@ -10,13 +11,18 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cafe.adriel.voyager.core.screen.Screen
+import cafe.adriel.voyager.navigator.LocalNavigator
 import domain.models.Share
 import investmultiplatform.composeapp.generated.resources.*
-import org.jetbrains.compose.resources.painterResource
+import kotlinx.coroutines.launch
+import myicons.Minus
+import myicons.Plus
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
@@ -26,59 +32,65 @@ import ui.composables.ShareItem
 import utils.toCurrencyFormat
 import utils.toIntOrZero
 
-@OptIn(KoinExperimentalAPI::class)
-@Composable
-fun OrderScreen(
+data class OrderScreen(
+    val orderAction: OrderAction,
+    val stockUid: String = ""
+) : Screen {
+    @OptIn(KoinExperimentalAPI::class)
+    @Composable
+    override fun Content(
 //    navigator: ResultBackNavigator<Boolean>,
-    orderAction: OrderAction,
-    stockUid: String = ""
-) {
-    val coroutineScope = rememberCoroutineScope()
-    val viewModel: OrderViewModel = koinViewModel { parametersOf(orderAction, stockUid) }
+    ) {
+        val coroutineScope = rememberCoroutineScope()
+        val navigator = LocalNavigator.current
+        val viewModel: OrderViewModel = koinViewModel { parametersOf(orderAction, stockUid) }
 
-    val state = viewModel.state.collectAsState().value
-    val availableLots = viewModel.availableLots.collectAsState().value
-    val lotsInput = viewModel.lotsInput.collectAsState().value
-    val totalValue = viewModel.totalValue.collectAsState().value
+        val state = viewModel.state.collectAsState().value
+        val availableLots = viewModel.availableLots.collectAsState().value
+        val lotsInput = viewModel.lotsInput.collectAsState().value
+        val totalValue = viewModel.totalValue.collectAsState().value
 
-    Scaffold(
-        topBar = {
-            OrderTopAppBar(
-//                onNavigationIconClick = { navigator.navigateBack() },
-                onNavigationIconClick = {  },
-                orderAction = orderAction
-            )
-        }
-    ) { innerPadding ->
-        Box(modifier = Modifier
-            .padding(innerPadding)
-            .padding(horizontal = 2.dp)
-        ) {
-            when (state) {
-                is OrderDetailsState.OrderDetailsFetched -> {
-                    val share = state.share
-                    OrderOnDetailsFetched(
-                        share = share,
-                        availableLots = availableLots,
-                        lotsInput = lotsInput,
-                        totalValue = totalValue,
-                        orderAction = orderAction,
-                        onUpdateInputLots = viewModel::updateLotsInput,
-                        onDecreaseLots = viewModel::decreaseLots,
-                        onIncreaseLots = viewModel::increaseLots,
-                        onConfirmOrder = {
-//                            coroutineScope.launch {
-//                                viewModel.confirmOrder()
-//                                navigator.navigateBack(true)
-//                            }
-                        },
-                    )
+        Scaffold(
+            topBar = {
+                OrderTopAppBar(
+                    onNavigationIconClick = {
+                        navigator?.pop()
+                    },
+                    orderAction = orderAction
+                )
+            }
+        ) { innerPadding ->
+            Box(modifier = Modifier
+                .padding(innerPadding)
+                .padding(horizontal = 2.dp)
+            ) {
+                when (state) {
+                    is OrderDetailsState.OrderDetailsFetched -> {
+                        val share = state.share
+                        OrderOnDetailsFetched(
+                            share = share,
+                            availableLots = availableLots,
+                            lotsInput = lotsInput,
+                            totalValue = totalValue,
+                            orderAction = orderAction,
+                            onUpdateInputLots = viewModel::updateLotsInput,
+                            onDecreaseLots = viewModel::decreaseLots,
+                            onIncreaseLots = viewModel::increaseLots,
+                            onConfirmOrder = {
+                            coroutineScope.launch {
+                                viewModel.confirmOrder()
+                                navigator?.pop()
+                            }
+                            },
+                        )
+                    }
+                    is OrderDetailsState.Loading -> OrderOnLoading()
+                    is OrderDetailsState.Error -> OrderOnError()
                 }
-                is OrderDetailsState.Loading -> OrderOnLoading()
-                is OrderDetailsState.Error -> OrderOnError()
             }
         }
     }
+
 }
 
 @Composable
@@ -207,7 +219,7 @@ private fun LotsSection(
                     enabled = lotsInt > 0
                 ) {
                     Icon(
-                        painterResource(Res.drawable.minus),
+                        rememberVectorPainter(MyIcons.Minus),
                         modifier = Modifier.size(24.dp),
                         contentDescription = "-",
                         tint = if (lotsInt > 0) {
@@ -222,7 +234,7 @@ private fun LotsSection(
                     enabled = orderAction == OrderAction.BUY || lotsInt < availableLots
                 ) {
                     Icon(
-                        painterResource(Res.drawable.plus),
+                        painter = rememberVectorPainter(MyIcons.Plus),
                         modifier = Modifier.size(24.dp),
                         contentDescription = "+",
                         tint = if (orderAction == OrderAction.BUY || lotsInt < availableLots) {

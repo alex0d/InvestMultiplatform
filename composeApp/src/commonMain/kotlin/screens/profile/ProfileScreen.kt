@@ -1,5 +1,6 @@
 package screens.profile
 
+import MyIcons
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -7,26 +8,30 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import cafe.adriel.voyager.navigator.LocalNavigator
 import investmultiplatform.composeapp.generated.resources.Res
-import investmultiplatform.composeapp.generated.resources.account_circle
 import investmultiplatform.composeapp.generated.resources.error_occurred
 import investmultiplatform.composeapp.generated.resources.logout
-import org.jetbrains.compose.resources.painterResource
+import myicons.AccountCircle
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.KoinExperimentalAPI
+import screens.auth.AuthScreen
 
 @OptIn(KoinExperimentalAPI::class)
 @Composable
 fun ProfileScreen(
+    modifier: Modifier = Modifier,
     viewModel: ProfileViewModel = koinViewModel()
 ) {
     val state = viewModel.state.collectAsState().value
+    val navigator = LocalNavigator.current
 
     Column(
-        modifier = Modifier
+        modifier = modifier then Modifier
             .background(MaterialTheme.colorScheme.surface)
             .fillMaxSize()
             .statusBarsPadding(),
@@ -58,7 +63,7 @@ fun ProfileScreen(
                     modifier = Modifier
                         .size(240.dp)
                         .padding(top = 32.dp, bottom = 16.dp),
-                    painter = painterResource(Res.drawable.account_circle),
+                    painter = rememberVectorPainter(MyIcons.AccountCircle),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurface
                 )
@@ -77,12 +82,8 @@ fun ProfileScreen(
                 Button(
                     modifier = Modifier.padding(bottom = 32.dp),
                     onClick = {
-//                        viewModel.logout()
-//                        rootNavigator.navigate(RootNavGraph) {
-//                            popUpTo(MainScreenDestination) {
-//                                inclusive = true
-//                            }
-//                        }
+                        viewModel.logout()
+                        navigator?.parent?.replaceAll(AuthScreen())
                     },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.tertiaryContainer,

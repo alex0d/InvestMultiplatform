@@ -2,15 +2,16 @@ package data.local
 
 import kotlinx.browser.localStorage
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 class UserDataSourceImpl : UserDataSource {
-    private val accessTokenFlow = MutableSharedFlow<String?>(replay = 1)
-    private val refreshTokenFlow = MutableSharedFlow<String?>(replay = 1)
-    private val userFirstnameFlow = MutableSharedFlow<String?>(replay = 1)
-    private val userLastnameFlow = MutableSharedFlow<String?>(replay = 1)
-    private val userEmailFlow = MutableSharedFlow<String?>(replay = 1)
+
+    private val _accessToken = MutableStateFlow<String?>(null)
+    private val _refreshToken = MutableStateFlow<String?>(null)
+    private val _userFirstname = MutableStateFlow<String?>(null)
+    private val _userLastname = MutableStateFlow<String?>(null)
+    private val _userEmail = MutableStateFlow<String?>(null)
 
     override suspend fun saveUserDetails(
         accessToken: String,
@@ -26,43 +27,55 @@ class UserDataSourceImpl : UserDataSource {
         saveUserEmail(email)
     }
 
+    init {
+        _accessToken.value = localStorage.getItem("accessToken")
+        _refreshToken.value = localStorage.getItem("refreshToken")
+        _userFirstname.value = localStorage.getItem("userFirstname")
+        _userLastname.value = localStorage.getItem("userLastname")
+        _userEmail.value = localStorage.getItem("userEmail")
+    }
+
     override suspend fun saveAccessToken(token: String) {
         localStorage.setItem("accessToken", token)
-        accessTokenFlow.emit(token)
+        _accessToken.value = token
     }
 
     override suspend fun saveRefreshToken(token: String) {
         localStorage.setItem("refreshToken", token)
-        refreshTokenFlow.emit(token)
+        _refreshToken.value = token
     }
 
     override suspend fun saveUserFirstname(firstname: String) {
         localStorage.setItem("userFirstname", firstname)
-        userFirstnameFlow.emit(firstname)
+        _userFirstname.value = firstname
     }
 
     override suspend fun saveUserLastname(lastname: String?) {
         localStorage.setItem("userLastname", lastname ?: "")
-        userLastnameFlow.emit(lastname)
+        _userLastname.value = lastname
     }
 
     override suspend fun saveUserEmail(email: String) {
         localStorage.setItem("userEmail", email)
-        userEmailFlow.emit(email)
+        _userEmail.value = email
     }
 
     override suspend fun clear() {
         localStorage.clear()
-        accessTokenFlow.emit(null)
-        refreshTokenFlow.emit(null)
-        userFirstnameFlow.emit(null)
-        userLastnameFlow.emit(null)
-        userEmailFlow.emit(null)
+        _accessToken.value = null
+        _refreshToken.value = null
+        _userFirstname.value = null
+        _userLastname.value = null
+        _userEmail.value = null
     }
 
-    override val accessToken: Flow<String?> = accessTokenFlow.asSharedFlow()
-    override val refreshToken: Flow<String?> = refreshTokenFlow.asSharedFlow()
-    override val userFirstname: Flow<String?> = userFirstnameFlow.asSharedFlow()
-    override val userLastname: Flow<String?> = userLastnameFlow.asSharedFlow()
-    override val userEmail: Flow<String?> = userEmailFlow.asSharedFlow()
+    override val accessToken: Flow<String?> = _accessToken.asStateFlow()
+
+    override val refreshToken: Flow<String?> = _refreshToken.asStateFlow()
+
+    override val userFirstname: Flow<String?> = _userFirstname.asStateFlow()
+
+    override val userLastname: Flow<String?> = _userLastname.asStateFlow()
+
+    override val userEmail: Flow<String?> = _userEmail.asStateFlow()
 }

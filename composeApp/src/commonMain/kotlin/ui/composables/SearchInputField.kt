@@ -1,5 +1,6 @@
 package ui.composables
 
+import MyIcons
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -17,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
@@ -26,8 +28,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import investmultiplatform.composeapp.generated.resources.*
-import org.jetbrains.compose.resources.painterResource
+import investmultiplatform.composeapp.generated.resources.Res
+import investmultiplatform.composeapp.generated.resources.search_stock_placeholder
+import myicons.IcChevronLeft
+import myicons.IcCloseSearch
+import myicons.NavbarIconsSearchInactive
 import org.jetbrains.compose.resources.stringResource
 import screens.search.SearchViewModel
 
@@ -62,14 +67,14 @@ fun SearchInputField(
         leadingIcon = {
             when (searchFieldState) {
                 SearchViewModel.SearchFieldState.Idle -> Icon(
-                    painter = painterResource(Res.drawable.navbar_icons_search_inactive),
+                    painter = rememberVectorPainter(MyIcons.NavbarIconsSearchInactive),
                     contentDescription = "Search icon",
                     tint = MaterialTheme.colorScheme.onPrimaryContainer
                 )
 
                 SearchViewModel.SearchFieldState.EmptyActive,
                 SearchViewModel.SearchFieldState.WithInputActive -> Icon(
-                    painter = painterResource(Res.drawable.ic_chevron_left),
+                    painter = rememberVectorPainter(MyIcons.IcChevronLeft),
                     contentDescription = "Search chevron icon",
                     tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.6f),
                     modifier = Modifier.clickable { onChevronClicked.invoke() }
@@ -84,7 +89,7 @@ fun SearchInputField(
         trailingIcon = if (searchFieldState is SearchViewModel.SearchFieldState.WithInputActive) {
             {
                 Icon(
-                    painter = painterResource(Res.drawable.ic_close_search),
+                    painter = rememberVectorPainter(MyIcons.IcCloseSearch),
                     contentDescription = "Search close icon",
                     tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.clickable { onClearInputClicked.invoke() }

@@ -1,5 +1,6 @@
 package screens.tarot
 
+import MyIcons
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -13,13 +14,17 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cafe.adriel.voyager.core.screen.Screen
+import cafe.adriel.voyager.navigator.LocalNavigator
 import domain.models.TarotCard
 import investmultiplatform.composeapp.generated.resources.*
 import kotlinx.coroutines.delay
+import myicons.Refresh
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.painterResource
@@ -29,94 +34,95 @@ import org.koin.core.annotation.KoinExperimentalAPI
 import org.koin.core.parameter.parametersOf
 import ui.composables.TwoButtonsAlertDialog
 
-@OptIn(ExperimentalMaterial3Api::class, KoinExperimentalAPI::class)
-//@Destination<MainGraph>
-@Composable
-fun TarotScreen(
-//    navigator: DestinationsNavigator,
-    stockName: String = ""
-) {
-    val viewModel: TarotViewModel = koinViewModel { parametersOf(stockName) }
-    val state = viewModel.state.collectAsState().value
+data class TarotScreen(
+    val stockName: String
+) : Screen {
+    @OptIn(ExperimentalMaterial3Api::class, KoinExperimentalAPI::class)
+    @Composable
+    override fun Content() {
+        val navigator = LocalNavigator.current
+        val viewModel: TarotViewModel = koinViewModel { parametersOf(stockName) }
+        val state = viewModel.state.collectAsState().value
 
-    var openAlertDialog by remember { mutableStateOf(false) }
+        var openAlertDialog by remember { mutableStateOf(false) }
 
-    Scaffold(
-        topBar = {
-            if (state is TarotPredictionState.Success) {
-                TopAppBar(
-                    navigationIcon = {
-//                        IconButton(onClick = { navigator.popBackStack() }) {
-                        IconButton(onClick = {  }) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                tint = MaterialTheme.colorScheme.primary,
-                                contentDescription = stringResource(Res.string.go_back)
+        Scaffold(
+            topBar = {
+                if (state is TarotPredictionState.Success) {
+                    TopAppBar(
+                        navigationIcon = {
+                            IconButton(onClick = { navigator?.pop() }) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    contentDescription = stringResource(Res.string.go_back)
+                                )
+                            }
+                        },
+                        title = {
+                            Text(
+                                text = stringResource(Res.string.esoteric_analysis),
+                                style = MaterialTheme.typography.titleLarge
                             )
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            titleContentColor = MaterialTheme.colorScheme.primary,
+                        ),
+                        actions = {
+                            IconButton(onClick = { openAlertDialog = true }) {
+                                Icon(
+                                    painter = rememberVectorPainter(MyIcons.Refresh),
+                                    contentDescription = stringResource(Res.string.refresh),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
                         }
-                    },
-                    title = {
-                        Text(
-                            text = stringResource(Res.string.esoteric_analysis),
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        titleContentColor = MaterialTheme.colorScheme.primary,
-                    ),
-                    actions = {
-                        IconButton(onClick = { openAlertDialog = true }) {
-                            Icon(
-                                painter = painterResource(Res.drawable.refresh),
-                                contentDescription = stringResource(Res.string.refresh),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                )
-            }
-        }
-    ) { padding ->
-        Box(modifier = Modifier
-            .padding(top = padding.calculateTopPadding())
-            .padding(horizontal = 2.dp)
-        ) {
-            when (state) {
-                is TarotPredictionState.Loading -> Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-                is TarotPredictionState.Error -> Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = stringResource(Res.string.error_occurred),
-                        textAlign = TextAlign.Center,
                     )
                 }
-                is TarotPredictionState.Success -> TarotPredictionOnSuccess(stockName, state)
             }
+        ) { padding ->
+            Box(modifier = Modifier
+                .padding(top = padding.calculateTopPadding())
+                .padding(horizontal = 2.dp)
+            ) {
+                when (state) {
+                    is TarotPredictionState.Loading -> Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                    is TarotPredictionState.Error -> Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.error_occurred),
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                    is TarotPredictionState.Success -> TarotPredictionOnSuccess(stockName, state)
+                }
 
-            if (openAlertDialog) {
-                TwoButtonsAlertDialog(
-                    onDismissRequest = { openAlertDialog = false },
-                    onConfirmation = {
-                        openAlertDialog = false
-                        viewModel.refreshTarotPrediction()
-                    },
-                    dialogTitle = stringResource(Res.string.updating_prediction_title),
-                    dialogText = stringResource(Res.string.updating_prediction_text),
-                    icon = Icons.Default.Warning
-                )
+                if (openAlertDialog) {
+                    TwoButtonsAlertDialog(
+                        onDismissRequest = { openAlertDialog = false },
+                        onConfirmation = {
+                            openAlertDialog = false
+                            viewModel.refreshTarotPrediction()
+                        },
+                        dialogTitle = stringResource(Res.string.updating_prediction_title),
+                        dialogText = stringResource(Res.string.updating_prediction_text),
+                        icon = Icons.Default.Warning
+                    )
+                }
             }
         }
     }
+
 }
 
 @Composable

@@ -1,5 +1,6 @@
 package screens.portfolio
 
+import MyIcons
 import androidx.compose.animation.animateColor
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -15,72 +16,80 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.LifecycleOwner
+import cafe.adriel.voyager.core.screen.Screen
+import cafe.adriel.voyager.navigator.LocalNavigator
 import coil3.compose.AsyncImage
 import domain.models.PortfolioInfo
 import domain.models.PortfolioStockInfo
 import investmultiplatform.composeapp.generated.resources.*
-import org.jetbrains.compose.resources.painterResource
+import myicons.SentimentDissatisfied
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.jetbrains.compose.ui.tooling.preview.PreviewParameter
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.KoinExperimentalAPI
+import screens.stock.StockDetailsScreen
 import ui.composables.ProfitText
 import utils.previewproviders.FakePortfolioInfo
 import utils.toCurrencyFormat
 
-@OptIn(KoinExperimentalAPI::class)
-@Composable
-fun PortfolioScreen(
-    lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
-    viewModel: PortfolioViewModel = koinViewModel()
-) {
-    val state = viewModel.state.collectAsState().value
+class PortfolioScreen : Screen {
 
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_START -> viewModel.startUpdating()
-                Lifecycle.Event.ON_STOP -> viewModel.stopUpdating()
-                else -> Unit
+    @OptIn(KoinExperimentalAPI::class)
+    @Composable
+    override fun Content() {
+        val lifecycleOwner = LocalLifecycleOwner.current
+
+        val viewModel: PortfolioViewModel = koinViewModel()
+        val state = viewModel.state.collectAsState().value
+
+        DisposableEffect(lifecycleOwner) {
+            val observer = LifecycleEventObserver { _, event ->
+                when (event) {
+                    Lifecycle.Event.ON_START -> viewModel.startUpdating()
+                    Lifecycle.Event.ON_STOP -> viewModel.stopUpdating()
+                    else -> Unit
+                }
+            }
+            lifecycleOwner.lifecycle.addObserver(observer)
+
+            onDispose {
+                lifecycleOwner.lifecycle.removeObserver(observer)
             }
         }
-        lifecycleOwner.lifecycle.addObserver(observer)
 
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
+        Box(
+            modifier = Modifier
+                .background(MaterialTheme.colorScheme.surface)
+                .statusBarsPadding()
+        ) {
+            when (state) {
+                is PortfolioState.Loading -> PortfolioScreenOnLoading()
+                is PortfolioState.PortfolioInfoFetched -> PortfolioScreenOnInfoFetched(
+                    portfolioInfo = state.portfolioInfo,
+                )
+                is PortfolioState.Error -> PortfolioScreenOnError()
+            }
         }
     }
 
-    Box(
-        modifier = Modifier
-            .background(MaterialTheme.colorScheme.surface)
-            .statusBarsPadding()
-    ) {
-        when (state) {
-            is PortfolioState.Loading -> PortfolioScreenOnLoading()
-            is PortfolioState.PortfolioInfoFetched -> PortfolioScreenOnInfoFetched(
-                portfolioInfo = state.portfolioInfo,
-//                navigator = navigator
-            )
-            is PortfolioState.Error -> PortfolioScreenOnError()
-        }
-    }
+
 }
 
 @Preview
 @Composable
 private fun PortfolioScreenOnInfoFetched(
     @PreviewParameter(FakePortfolioInfo::class) portfolioInfo: PortfolioInfo,
-//    navigator: DestinationsNavigator = EmptyDestinationsNavigator
 ) {
+    val navigator = LocalNavigator.current
+
     Column {
         TotalBalanceCard(
             portfolioInfo.totalValue,
@@ -91,7 +100,7 @@ private fun PortfolioScreenOnInfoFetched(
             LazyColumn {
                 items(portfolioInfo.stocks) { stock ->
                     StockItem(stock, onClick = {
-//                        navigator.navigate(StockDetailsScreenDestination(stockUid = stock.uid))
+                        navigator?.parent?.push(StockDetailsScreen(stockUid = stock.uid))
                     })
                 }
             }
@@ -110,7 +119,7 @@ private fun PortfolioScreenOnInfoFetched(
                 )
                 Spacer(Modifier.height(24.dp))
                 Icon(
-                    painterResource(Res.drawable.sentiment_dissatisfied),
+                    painter = rememberVectorPainter(MyIcons.SentimentDissatisfied),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     modifier = Modifier.size(48.dp)

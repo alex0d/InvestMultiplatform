@@ -21,17 +21,24 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cafe.adriel.voyager.core.annotation.InternalVoyagerApi
+import cafe.adriel.voyager.navigator.LocalNavigator
+import cafe.adriel.voyager.navigator.internal.BackHandler
+import cafe.adriel.voyager.navigator.tab.LocalTabNavigator
 import domain.models.Share
 import investmultiplatform.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.KoinExperimentalAPI
+import screens.main.BottomBarTab
+import screens.stock.StockDetailsScreen
 import ui.composables.SearchInputField
 import ui.composables.ShareItem
 
-@OptIn(KoinExperimentalAPI::class)
+@OptIn(KoinExperimentalAPI::class, InternalVoyagerApi::class)
 @Composable
 fun SearchScreen(
+    modifier: Modifier = Modifier,
     viewModel: SearchViewModel = koinViewModel()
 ) {
     val localFocusManager = LocalFocusManager.current
@@ -41,10 +48,10 @@ fun SearchScreen(
     val inputText = viewModel.inputText.collectAsState().value
 
     val keyboardController = LocalSoftwareKeyboardController.current
-
+    val navigator = LocalNavigator.current
 
     SearchScreenLayout(
-        modifier = Modifier
+        modifier = modifier then Modifier
             .background(MaterialTheme.colorScheme.surface)
             .statusBarsPadding()
             .pointerInput(Unit) {
@@ -63,11 +70,15 @@ fun SearchScreen(
             keyboardController?.hide()
         },
         onKeyboardHidden = { viewModel.keyboardHidden() },
-//        onItemClicked = { share ->
-//            navigator.navigate(StockDetailsScreenDestination(stockUid = share.uid))
-//        },
-        onItemClicked = { }
+        onItemClicked = {
+            navigator?.push(StockDetailsScreen(stockUid = it.uid))
+        }
     )
+
+    val tabNavigator = LocalTabNavigator.current
+    BackHandler(true) {
+        tabNavigator.current = BottomBarTab.Portfolio
+    }
 }
 
 @Composable
