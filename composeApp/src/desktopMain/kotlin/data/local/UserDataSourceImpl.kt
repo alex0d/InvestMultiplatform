@@ -2,40 +2,42 @@ package data.local
 
 import kotlinx.coroutines.flow.Flow
 
-class UserDataSourceImpl: UserDataSource {
+class UserDataSourceImpl(
+    private val userDataStore: UserDataStore
+) : UserDataSource {
     override suspend fun saveUserDetails(
         accessToken: String,
         refreshToken: String,
         firstname: String,
         lastname: String?,
         email: String
-    ) = TODO("Not yet implemented")
+    ) = userDataStore.saveUserDetails(accessToken, refreshToken, firstname, lastname, email)
 
-    override suspend fun saveAccessToken(token: String) = TODO("Not yet implemented")
+    override suspend fun saveAccessToken(token: String) = userDataStore.saveAccessToken(token)
 
-    override suspend fun saveRefreshToken(token: String) = TODO("Not yet implemented")
+    override suspend fun saveRefreshToken(token: String) = userDataStore.saveRefreshToken(token)
 
-    override suspend fun saveUserFirstname(firstname: String) = TODO("Not yet implemented")
+    override suspend fun saveUserFirstname(firstname: String) = userDataStore.saveUserFirstname(firstname)
 
-    override suspend fun saveUserLastname(lastname: String?) = TODO("Not yet implemented")
+    override suspend fun saveUserLastname(lastname: String?) = userDataStore.saveUserLastname(lastname)
 
-    override suspend fun saveUserEmail(email: String) = TODO("Not yet implemented")
+    override suspend fun saveUserEmail(email: String) = userDataStore.saveUserEmail(email)
 
-    override suspend fun clear() = TODO("Not yet implemented")
+    override suspend fun clear() = userDataStore.clear()
 
     override val accessToken: Flow<String?>
-        get() = TODO("Not yet implemented")
+        get() = userDataStore.accessToken
 
     override val refreshToken: Flow<String?>
-        get() = TODO("Not yet implemented")
+        get() = userDataStore.refreshToken
 
     override val userFirstname: Flow<String?>
-        get() = TODO("Not yet implemented")
+        get() = userDataStore.userFirstname
 
     override val userLastname: Flow<String?>
-        get() = TODO("Not yet implemented")
+        get() = userDataStore.userLastname
 
     override val userEmail: Flow<String?>
-        get() = TODO("Not yet implemented")
+        get() = userDataStore.userEmail
 
 }
